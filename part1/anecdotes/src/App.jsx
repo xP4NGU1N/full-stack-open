@@ -1,23 +1,12 @@
 import { useState } from 'react'
 
-const MostVotes = ({anecdotes, votes}) => {
-  let total = 0
-  votes.forEach((vote)=>total+=vote)
-  if (!total) return <h1>Start voting</h1>
-  else {
-    let highestIdx = 0
-    let highestVotes = 0
-    for (let i=0; i<votes.length; i++) {
-      if (votes[i] > highestVotes) {
-        highestVotes = votes[i]
-        highestIdx = i
-      }
-    }
-  
+const MostVotes = ({anecdotes, votes, maxVote}) => {
+  if (!votes[maxVote]) return <h1>Start voting</h1>
+  else {  
     return (
       <>
         <h1>Anecdote with most votes</h1>
-        <p>{anecdotes[highestIdx]}</p>
+        <p>{anecdotes[maxVote]}</p>
       </>
     )
   }
@@ -37,12 +26,13 @@ const App = () => {
    
   const [selected, setSelected] = useState(0)
   const [votes, setVotes] = useState(Array(anecdotes.length).fill(0))
-  console.log(votes)
+  const [maxVote, setMaxVote] = useState(0)
 
   const getRandomInt=(max)=>Math.floor(Math.random()*max)
   const updateVotes=(index)=>{
     const newVotes = [...votes]
     newVotes[index] += 1
+    if (newVotes[index] > newVotes[maxVote]) setMaxVote(index)
     return newVotes
   }
 
@@ -53,7 +43,7 @@ const App = () => {
       <p>has {votes[selected]} votes</p><br></br>
       <button onClick={()=>setVotes(updateVotes(selected))}>vote</button>
       <button onClick={()=>setSelected(getRandomInt(anecdotes.length))}>next anecdote</button>
-      <MostVotes anecdotes={anecdotes} votes={votes} />
+      <MostVotes anecdotes={anecdotes} votes={votes} maxVote={maxVote} />
 
     </div>
   )
