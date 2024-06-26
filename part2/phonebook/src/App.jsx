@@ -1,6 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import personService from './services/persons'
 
-const Person = ( {person} ) => <div>{person.name} {person.number} </div>
+const Person = ( {person, handleDelete } ) => {
+  return (
+  <div>
+    {person.name} {person.number}  
+    <button onClick={() => handleDelete(person.id)}>delete</button>
+  </div>
+  )
+}
+
 const Input = ( {title, value, onChange } ) => (
   <div>
   {title}: <input 
@@ -17,11 +26,32 @@ const App = () => {
 
   const addContact = (event) => {
     event.preventDefault()
-    if (persons.some(person => person.name === newName)) {
-      alert(`${newName} is already added to phonebook`)
+    const person = { name: newName, number: newNumber, id:newName }
+    if (persons.some(person => person.id === newName)) {
+      if (confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
+      personService.updatePerson(person)
+        .then(updatedPerson => {
+          setPersons(persons.map(person => person.id === updatedPerson.id ? updatedPerson : person))
+          setNewName('')
+          setNewNumber('')
+        })
+      }
     } else {
-      const person = { name: newName, number: newNumber, id: persons.length+1 }
-      setPersons(persons.concat(person))
+      personService.addPerson(person)
+        .then(newPerson => {
+          setPersons(persons.concat(newPerson))
+          setNewName('')
+          setNewNumber('')
+        })
+    }
+  }
+
+  const handleDelete = (id) => {
+    if (confirm(`Delete ${newName}?`)) {
+    personService.deleteContact(id)
+      .then(deletedPerson => {
+        setPersons(persons.filter(person => person.id !== deletedPerson.id))
+      })
     }
   }
 
@@ -36,6 +66,12 @@ const App = () => {
   const handleSearchChange = (event) => {
     setNewSearch(event.target.value)
   }
+
+  const loadPersons = () => {
+    personService.getAll()
+      .then(initialPersons => setPersons(initialPersons))
+  }
+  useEffect(loadPersons, [])
 
   return (
     <div>
@@ -54,7 +90,7 @@ const App = () => {
       <h3>Numbers</h3>
       {persons.map(person => {
         if (person.name.toLowerCase().includes(newSearch.toLowerCase())) {
-          return (<Person key={person.id} person={person} />)  
+          return (<Person key={person.id} person={person} handleDelete={handleDelete} />)  
         }
       })}
     </div>
