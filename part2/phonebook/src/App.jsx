@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import personService from './services/persons'
 
-const Person = ( {person, handleDelete } ) => {
+const Person = ( {person, handleDelete} ) => {
   return (
   <div>
     {person.name} {person.number}  
@@ -10,7 +10,28 @@ const Person = ( {person, handleDelete } ) => {
   )
 }
 
-const Input = ( {title, value, onChange } ) => (
+const Notification = ( {message} ) => {
+  if (!message) return null
+
+  const colour = message.type === "success" ? 'green' : 'red'
+  const notifStyle = {
+    color: colour,
+    background: "lightgrey",
+    fontSize: "20px",
+    borderStyle: "solid",
+    borderRadius: "5px",
+    padding: "10px",
+    marginBottom: "10px"
+  }
+
+  return (
+    <div style={notifStyle}>
+      {message.msg}
+    </div>
+  )
+}
+
+const Input = ( {title, value, onChange} ) => (
   <div>
   {title}: <input 
   value={value}
@@ -23,6 +44,7 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [newSearch, setNewSearch] = useState('')
+  const [message, setMessage] = useState(null)
 
   const addContact = (event) => {
     event.preventDefault()
@@ -32,14 +54,19 @@ const App = () => {
       personService.updatePerson(person)
         .then(updatedPerson => {
           setPersons(persons.map(person => person.id === updatedPerson.id ? updatedPerson : person))
+          displayNotification({"type": "success", "msg": `Updated ${updatedPerson.name}`})
           setNewName('')
           setNewNumber('')
+        }).catch(error => {
+          console.log(error)
+          displayNotification({"type": "failure", "msg": `Information of ${person.name} has already been removed from server`})
         })
       }
     } else {
       personService.addPerson(person)
         .then(newPerson => {
           setPersons(persons.concat(newPerson))
+          displayNotification({"type": "success", "msg": `Added ${newPerson.name}`})
           setNewName('')
           setNewNumber('')
         })
@@ -67,6 +94,11 @@ const App = () => {
     setNewSearch(event.target.value)
   }
 
+  const displayNotification = (message) => {
+    setMessage(message)
+    setTimeout(() => setMessage(null), 2500)
+  }
+
   const loadPersons = () => {
     personService.getAll()
       .then(initialPersons => setPersons(initialPersons))
@@ -76,6 +108,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={message} />
       <Input title="filter shown with" value={newSearch} onChange={handleSearchChange} />
 
       <h3>Add a new</h3>
