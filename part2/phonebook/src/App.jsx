@@ -58,7 +58,7 @@ const App = () => {
           setNewName('')
           setNewNumber('')
         }).catch(error => {
-          displayNotification({"type": "failure", "msg": `Information of ${existingPerson.name} has already been removed from server`})
+          displayNotification({"type": "failure", "msg": `${error.response.data.error}`})
         })
     } else {
       const person = { name: newName, number: newNumber }
@@ -68,6 +68,8 @@ const App = () => {
           displayNotification({"type": "success", "msg": `Added ${newPerson.name}`})
           setNewName('')
           setNewNumber('')
+        }).catch(error => {
+          displayNotification({"type": "failure", "msg": `${error.response.data.error}`})
         })
     }
   }
