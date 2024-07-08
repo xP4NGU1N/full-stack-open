@@ -48,9 +48,9 @@ const App = () => {
 
   const addContact = (event) => {
     event.preventDefault()
-    const person = { name: newName, number: newNumber }
-    if (persons.some(person => person.name === newName)) {
-      if (confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
+    const existingPerson = persons.find(person => person.name === newName)
+    if (existingPerson && confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
+      const person = { ...existingPerson, number: newNumber } 
       personService.updatePerson(person)
         .then(updatedPerson => {
           setPersons(persons.map(person => person.id === updatedPerson.id ? updatedPerson : person))
@@ -58,10 +58,10 @@ const App = () => {
           setNewName('')
           setNewNumber('')
         }).catch(error => {
-          displayNotification({"type": "failure", "msg": `Information of ${person.name} has already been removed from server`})
+          displayNotification({"type": "failure", "msg": `Information of ${existingPerson.name} has already been removed from server`})
         })
-      }
     } else {
+      const person = { name: newName, number: newNumber }
       personService.addPerson(person)
         .then(newPerson => {
           setPersons(persons.concat(newPerson))
