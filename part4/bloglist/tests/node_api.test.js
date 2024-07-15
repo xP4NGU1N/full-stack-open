@@ -1,6 +1,7 @@
 const { test, after, beforeEach } = require('node:test')
 const assert = require('node:assert')
 const Blog = require('../models/blog')
+const User = require('../models/user')
 const helper = require('./test_helper')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
@@ -10,7 +11,11 @@ const api = supertest(app)
 
 beforeEach(async () => {
   await Blog.deleteMany({})
-  const blogObjects = helper.initialBlogs.map(blog => new Blog(blog))
+  await User.deleteMany({})
+  const user = await api
+    .post('/api/users')
+    .send(helper.user)
+  const blogObjects = helper.initialBlogs.map(blog => new Blog({ ...blog, user: user.body.id }))
   const promiseArray = blogObjects.map(blog => blog.save())
   await Promise.all(promiseArray)
 })
@@ -38,9 +43,14 @@ test('blog can be added to database', async () => {
     likes: 1
   }
 
+  const user = await api
+    .post('/api/users/login')
+    .send({ username: 'tester', password: 'tester' })
+
   const response = await api
     .post('/api/blogs')
     .send(newBlog)
+    .set('Authorization', `Bearer ${user.body.token}`)
     .expect(201)
     .expect('Content-Type', /application\/json/)
 
@@ -51,6 +61,21 @@ test('blog can be added to database', async () => {
   assert.strictEqual(getResponse.body.length, helper.initialBlogs.length+1)
 })
 
+test('blog cannot be added if user unauthorized', async () => {
+  const newBlog = {
+    title: 'new blog',
+    author: 'new author',
+    url: 'new url',
+    likes: 1
+  }
+
+  await api
+    .post('/api/blogs')
+    .send(newBlog)
+    .expect(401)
+    .expect('Content-Type', /application\/json/)
+})
+
 test('blog defaults like to 0', async () => {
   const newBlog = {
     title: 'new blog',
@@ -58,9 +83,14 @@ test('blog defaults like to 0', async () => {
     url: 'new url'
   }
 
+  const user = await api
+    .post('/api/users/login')
+    .send({ username: 'tester', password: 'tester' })
+
   const response = await api
     .post('/api/blogs')
     .send(newBlog)
+    .set('Authorization', `Bearer ${user.body.token}`)
     .expect(201)
     .expect('Content-Type', /application\/json/)
 
@@ -80,22 +110,34 @@ test('blog does not contain title or url', async () => {
     likes: 1
   }
 
+  const user = await api
+    .post('/api/users/login')
+    .send({ username: 'tester', password: 'tester' })
+
+
   await api
     .post('/api/blogs')
     .send(newBlog1)
+    .set('Authorization', `Bearer ${user.body.token}`)
     .expect(400)
 
   await api
     .post('/api/blogs')
     .send(newBlog2)
+    .set('Authorization', `Bearer ${user.body.token}`)
     .expect(400)
 })
 
 test('delete blog', async () => {
-  const firstBlog = helper.initialBlogs[0]
 
+  const user = await api
+    .post('/api/users/login')
+    .send({ username: 'tester', password: 'tester' })
+
+  const firstBlog = helper.initialBlogs[0]
   const response = await api
     .delete(`/api/blogs/${firstBlog._id}`)
+    .set('Authorization', `Bearer ${user.body.token}`)
     .expect(200)
   assert.strictEqual(response.body.id, firstBlog._id)
 
